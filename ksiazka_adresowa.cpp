@@ -80,7 +80,7 @@ void wczytajKontaktZPliku(vector<Kontakt>& ksiazkaAdresowa, string& daneOsoby, i
 		iterator++;
 	}
 }
-bool wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa)
+void wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa)
 {
 	fstream plik;
 	string daneOsoby;
@@ -91,14 +91,7 @@ bool wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa)
 	if (plik.good() == false)
 	{
 		plik.close();
-
-		system("cls");
-		cout << "Nie mozna otworzyc pliku" << endl;
-
-		Sleep(1500);
-		cin.sync();
-
-		return false;
+		return;
 	}
 
 	if (!(plik.peek() == '/n'))
@@ -112,8 +105,6 @@ bool wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa)
 	}
 
 	plik.close();
-
-	return true;
 }
 void wyswietlKontakt(const Kontakt& kontakt)
 {
@@ -173,7 +164,9 @@ void edytujKontakt(vector<Kontakt>& ksiazkaAdresowa)
 	}
 	if (!(kontaktIstnieje))
 	{
+		system("cls");
 		cout << endl << "Brak kontaktu o podanym ID" << endl;
+		Sleep(1500);
 		return;
 	}
 
@@ -189,7 +182,9 @@ void edytujKontakt(vector<Kontakt>& ksiazkaAdresowa)
 
 		cin >> wybor;
 		cout << "Podaj dane: ";
-		cin >> dane;
+
+		cin.ignore();
+		getline(cin,dane);
 
 		switch (wybor)
 		{
@@ -328,12 +323,7 @@ int main()
 	char wybor;
 	vector<Kontakt> ksiazkaAdresowa;
 
-	if (!(wczytajDaneZPliku(ksiazkaAdresowa)))
-	{
-		cout << "Nacisnij przycisk aby zakonczyc program" << endl;
-		cin.get();
-		exit(0);
-	}
+	wczytajDaneZPliku(ksiazkaAdresowa);
 
 	while (true)
 	{
