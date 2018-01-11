@@ -9,7 +9,7 @@ using namespace std;
 
 struct Kontakt
 {
-	int id;
+	int id = 0;
 	string imie = "", nazwisko = "", telefon = "", email = "", adres = "";
 };
 
@@ -19,7 +19,7 @@ struct Uzytkownik
 	string nazwa = "", haslo = "";
 };
 
-string zamienDaneNaString(Kontakt& kontakt, Uzytkownik* wybranyUzytkownik)
+string zamienDaneNaString(const Kontakt& kontakt, const Uzytkownik* wybranyUzytkownik)
 {
 	return  to_string(kontakt.id) + "|"
 		+ to_string(wybranyUzytkownik->idUzytkownika) + "|"
@@ -69,7 +69,7 @@ void zapiszDoPliku(string& daneZmienione, Uzytkownik* wybranyUzytkownik)
 			poczatek = false;
 		else
 		{
-			if(!(daneZmienione == "" && (idObecne == idZmienione)))
+			if (!(daneZmienione == "" && (idObecne == idZmienione)))
 				temp << endl;
 		}
 
@@ -96,10 +96,10 @@ void zapiszDoPliku(string& daneZmienione, Uzytkownik* wybranyUzytkownik)
 	cin.sync();
 }
 
-void wczytajKontaktZPliku(vector<Kontakt>& ksiazkaAdresowa, string& daneOsoby, Uzytkownik* wybranyUzytkownik)
+void wczytajKontaktZPliku(vector<Kontakt>& ksiazkaAdresowa, string& daneOsoby, const Uzytkownik* wybranyUzytkownik)
 {
 	int iterator = 1;
-	int dlugoscParametru;
+	int dlugoscParametru = 0;
 	Kontakt kontakt;
 
 	int poczatek = daneOsoby.find("|") + 1;
@@ -147,7 +147,7 @@ void wczytajKontaktZPliku(vector<Kontakt>& ksiazkaAdresowa, string& daneOsoby, U
 	}
 }
 
-void wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkownik)
+void wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa, const Uzytkownik* wybranyUzytkownik)
 {
 	fstream plik;
 	string daneOsoby;
@@ -175,7 +175,7 @@ void wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzyt
 void wczytajDaneUzytkownika(vector<Uzytkownik>& uzytkownicy, string& daneOsoby, int pozycja)
 {
 	int iterator = 1;
-	size_t dlugoscParametru;
+	size_t dlugoscParametru = 0;
 
 	while (true)
 	{
@@ -233,7 +233,7 @@ void wyswietlKontakt(const Kontakt& kontakt)
 	cout << endl << "ID: " << kontakt.id << endl << kontakt.imie << " " << kontakt.nazwisko << endl << "Telefon: " << kontakt.telefon << endl << "Email: " << kontakt.email << endl << "Adres: " << kontakt.adres << endl;
 }
 
-void dodajKontakt(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkownik)
+void dodajKontakt(vector<Kontakt>& ksiazkaAdresowa, const Uzytkownik* wybranyUzytkownik)
 {
 	system("cls");
 
@@ -267,13 +267,26 @@ void dodajKontakt(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkowni
 	}
 	else
 	{
-		while (bufor != "\n" && (int)plik.tellg() != ios::beg)
+		while ((bufor != "\n") && ((int)plik.tellg() != 1))
 		{
 			plik.seekg(-2, ios::cur);
 			bufor = plik.get();
 		}
 
-		kontakt.id = (int)plik.get() - 47;
+		if (bufor != "\n")
+			plik.seekg(-1, ios::cur);
+
+		char znak = ' ';
+		string idString = "";
+
+		while (znak != '|')
+		{
+			znak = plik.peek();
+			plik.seekg(1, ios::cur);
+			idString += znak;
+		}
+
+		kontakt.id = stoi(idString) + 1;
 		plik.seekg(0, ios::end);
 		plik << endl;
 	}
@@ -299,9 +312,9 @@ void edytujKontakt(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkown
 {
 	system("cls");
 
-	int id;
+	int id = 0;
 	bool kontaktIstnieje = false;
-	Kontakt* wybranyKontakt = NULL;
+	Kontakt* wybranyKontakt = nullptr;
 	string daneZmienione;
 	string dane;
 
@@ -395,7 +408,7 @@ void usunKontakt(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkownik
 {
 	system("cls");
 
-	int id;
+	int id = 0;
 	bool kontaktIstnieje = false;
 	unsigned int pozycja;
 
@@ -540,7 +553,6 @@ void wyswietlWszystkieKontakty(const vector<Kontakt>& ksiazkaAdresowa)
 
 void otworzKsiazkeDlaUzytkownika(vector<Uzytkownik>& uzytkownicy, Uzytkownik* wybranyUzytkownik)
 {
-	char wybor;
 	vector<Kontakt> ksiazkaAdresowa;
 
 	wczytajDaneZPliku(ksiazkaAdresowa, wybranyUzytkownik);
@@ -561,6 +573,7 @@ void otworzKsiazkeDlaUzytkownika(vector<Uzytkownik>& uzytkownicy, Uzytkownik* wy
 		cout << "7. Zmien haslo" << endl;
 		cout << "8. Wyloguj" << endl;
 
+		char wybor;
 		cin >> wybor;
 
 		switch (wybor)
@@ -702,8 +715,7 @@ Uzytkownik* logowanie(vector<Uzytkownik>& uzytkownicy)
 
 int main()
 {
-	char wybor;
-	Uzytkownik* wybranyUzytkownik;
+	Uzytkownik* wybranyUzytkownik = nullptr;
 	vector<Uzytkownik> uzytkownicy;
 
 	wczytajUzytkownikow(uzytkownicy);
@@ -717,6 +729,7 @@ int main()
 		cout << "2. Rejestracja" << endl;
 		cout << "3. Zamknij program" << endl;
 
+		char wybor;
 		cin >> wybor;
 
 		switch (wybor)
