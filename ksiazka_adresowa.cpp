@@ -3,19 +3,38 @@
 #include <vector>
 #include <fstream>
 #include <windows.h>
+#include <stdio.h>
 
 using namespace std;
 
 struct Kontakt
 {
 	int id;
-	string imie, nazwisko, telefon, email, adres;
+	string imie = "", nazwisko = "", telefon = "", email = "", adres = "";
 };
 
-void zapiszDoPliku(vector<Kontakt>& ksiazkaAdresowa)
+struct Uzytkownik
+{
+	int idUzytkownika = 0;
+	string nazwa = "", haslo = "";
+};
+
+string zamienDaneNaString(Kontakt& kontakt, Uzytkownik* wybranyUzytkownik)
+{
+	return  to_string(kontakt.id) + "|"
+		+ to_string(wybranyUzytkownik->idUzytkownika) + "|"
+		+ kontakt.imie + "|" + kontakt.nazwisko + "|"
+		+ kontakt.telefon + "|" + kontakt.email + "|"
+		+ kontakt.adres + "|";
+}
+
+void zapiszDoPliku(string& daneZmienione, Uzytkownik* wybranyUzytkownik)
 {
 	fstream plik;
-	plik.open("ksiazka_adresowa.txt", ios::out);
+	fstream temp;
+
+	plik.open("Adresaci.txt", ios::in);
+	temp.open("Adresaci_temp.txt", ios::out);
 
 	if (plik.good() == false)
 	{
@@ -28,15 +47,47 @@ void zapiszDoPliku(vector<Kontakt>& ksiazkaAdresowa)
 		return;
 	}
 
-	for (int i = 0; i < ksiazkaAdresowa.size(); i++)
-	{
-		plik << ksiazkaAdresowa[i].id << "|" << ksiazkaAdresowa[i].imie << "|" << ksiazkaAdresowa[i].nazwisko << "|" << ksiazkaAdresowa[i].telefon << "|" << ksiazkaAdresowa[i].email << "|" << ksiazkaAdresowa[i].adres << "|";
+	string idZmienione = daneZmienione.substr(0, daneZmienione.find("|"));
 
-		if (!(i == ksiazkaAdresowa.size() - 1))
-			plik << endl;
+	if (idZmienione[0] == '!')
+	{
+		idZmienione = idZmienione.substr(1, idZmienione.back());
+		daneZmienione = "";
+	}
+
+	bool poczatek = true;
+
+	while (!(plik.eof()))
+	{
+		string dane;
+
+		getline(plik, dane);
+
+		string idObecne = dane.substr(0, dane.find("|"));
+
+		if (poczatek == true)
+			poczatek = false;
+		else
+		{
+			if(!(daneZmienione == "" && (idObecne == idZmienione)))
+				temp << endl;
+		}
+
+		if (idObecne == idZmienione)
+		{
+			temp << daneZmienione;
+		}
+		else
+		{
+			temp << dane;
+		}
 	}
 
 	plik.close();
+	temp.close();
+
+	remove("Adresaci.txt");
+	rename("Adresaci_temp.txt", "Adresaci.txt");
 
 	system("cls");
 	cout << "Zapisano zmiany" << endl;
@@ -44,49 +95,64 @@ void zapiszDoPliku(vector<Kontakt>& ksiazkaAdresowa)
 	Sleep(1500);
 	cin.sync();
 }
-void wczytajKontaktZPliku(vector<Kontakt>& ksiazkaAdresowa, string& daneOsoby, int pozycja)
+
+void wczytajKontaktZPliku(vector<Kontakt>& ksiazkaAdresowa, string& daneOsoby, Uzytkownik* wybranyUzytkownik)
 {
 	int iterator = 1;
-	size_t dlugoscParametru;
+	int dlugoscParametru;
+	Kontakt kontakt;
 
-	while (true)
+	int poczatek = daneOsoby.find("|") + 1;
+	int koniec = daneOsoby.find("|", poczatek);
+	int idUzytkownika = atoi((daneOsoby.substr(poczatek, koniec - poczatek)).c_str());
+
+	if ((wybranyUzytkownik->idUzytkownika) == idUzytkownika)
 	{
-		dlugoscParametru = daneOsoby.find("|");
-
-		switch (iterator)
+		while (true)
 		{
-			case 1:
-				ksiazkaAdresowa[pozycja].id = atoi((daneOsoby.substr(0, dlugoscParametru)).c_str());
-				break;
-			case 2:
-				ksiazkaAdresowa[pozycja].imie = daneOsoby.substr(0, dlugoscParametru);
-				break;
-			case 3:
-				ksiazkaAdresowa[pozycja].nazwisko = daneOsoby.substr(0, dlugoscParametru);
-				break;
-			case 4:
-				ksiazkaAdresowa[pozycja].telefon = daneOsoby.substr(0, dlugoscParametru);
-				break;
-			case 5:
-				ksiazkaAdresowa[pozycja].email = daneOsoby.substr(0, dlugoscParametru);
-				break;
-			case 6:
-				ksiazkaAdresowa[pozycja].adres = daneOsoby.substr(0, dlugoscParametru);
-				daneOsoby.clear();
+			dlugoscParametru = daneOsoby.find("|");
 
-				return;
+			switch (iterator)
+			{
+				case 1:
+					kontakt.id = atoi((daneOsoby.substr(0, dlugoscParametru)).c_str());
+					break;
+				case 2:
+					daneOsoby.erase(0, daneOsoby.find("|") + 1);
+					kontakt.imie = daneOsoby.substr(0, daneOsoby.find("|"));
+					break;
+				case 3:
+					kontakt.nazwisko = daneOsoby.substr(0, dlugoscParametru);
+					break;
+				case 4:
+					kontakt.telefon = daneOsoby.substr(0, dlugoscParametru);
+					break;
+				case 5:
+					kontakt.email = daneOsoby.substr(0, dlugoscParametru);
+					break;
+				case 6:
+					kontakt.adres = daneOsoby.substr(0, dlugoscParametru);
+
+					daneOsoby.clear();
+					ksiazkaAdresowa.push_back(kontakt);
+					return;
+			}
+			daneOsoby.erase(0, daneOsoby.find("|") + 1);
+			iterator++;
 		}
-		daneOsoby.erase(0, dlugoscParametru + 1);
-		iterator++;
+	}
+	else
+	{
+		return;
 	}
 }
-void wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa)
+
+void wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkownik)
 {
 	fstream plik;
 	string daneOsoby;
-	Kontakt kontakt;
 
-	plik.open("ksiazka_adresowa.txt", ios::in);
+	plik.open("Adresaci.txt", ios::in);
 
 	if (plik.good() == false)
 	{
@@ -99,26 +165,80 @@ void wczytajDaneZPliku(vector<Kontakt>& ksiazkaAdresowa)
 		for (size_t i = 0; !(plik.eof()); i++)
 		{
 			getline(plik, daneOsoby);
-			ksiazkaAdresowa.push_back(kontakt);
-			wczytajKontaktZPliku(ksiazkaAdresowa, daneOsoby, i);
+			wczytajKontaktZPliku(ksiazkaAdresowa, daneOsoby, wybranyUzytkownik);
 		}
 	}
 
 	plik.close();
 }
+
+void wczytajDaneUzytkownika(vector<Uzytkownik>& uzytkownicy, string& daneOsoby, int pozycja)
+{
+	int iterator = 1;
+	size_t dlugoscParametru;
+
+	while (true)
+	{
+		dlugoscParametru = daneOsoby.find("|");
+
+		switch (iterator)
+		{
+			case 1:
+				uzytkownicy[pozycja].idUzytkownika = atoi((daneOsoby.substr(0, dlugoscParametru)).c_str());
+				break;
+			case 2:
+				uzytkownicy[pozycja].nazwa = daneOsoby.substr(0, dlugoscParametru);
+				break;
+			case 3:
+				uzytkownicy[pozycja].haslo = daneOsoby.substr(0, dlugoscParametru);
+				daneOsoby.clear();
+
+				return;
+		}
+		daneOsoby.erase(0, dlugoscParametru + 1);
+		iterator++;
+	}
+}
+
+void wczytajUzytkownikow(vector<Uzytkownik>& uzytkownicy)
+{
+	fstream plik;
+	string daneOsoby;
+	Uzytkownik uzytkownik;
+
+	plik.open("Uzytkownicy.txt", ios::in);
+
+	if (plik.good() == false)
+	{
+		plik.open("Uzytkownicy.txt", ios::out);
+		plik.close();
+		return;
+	}
+
+	if (!(plik.peek() == '/n'))
+	{
+		for (size_t pozycja = 0; !(plik.eof()); pozycja++)
+		{
+			getline(plik, daneOsoby);
+			uzytkownicy.push_back(uzytkownik);
+			wczytajDaneUzytkownika(uzytkownicy, daneOsoby, pozycja);
+		}
+	}
+
+	plik.close();
+}
+
 void wyswietlKontakt(const Kontakt& kontakt)
 {
 	cout << endl << "ID: " << kontakt.id << endl << kontakt.imie << " " << kontakt.nazwisko << endl << "Telefon: " << kontakt.telefon << endl << "Email: " << kontakt.email << endl << "Adres: " << kontakt.adres << endl;
 }
-void dodajKontakt(vector<Kontakt>& ksiazkaAdresowa)
+
+void dodajKontakt(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkownik)
 {
 	system("cls");
 
 	Kontakt kontakt;
-	if (ksiazkaAdresowa.size() == 0)
-		kontakt.id = 1;
-	else
-		kontakt.id = ksiazkaAdresowa.back().id + 1;
+	fstream plik;
 
 	cin.sync();
 	cout << "Podaj imie:" << endl;
@@ -134,19 +254,55 @@ void dodajKontakt(vector<Kontakt>& ksiazkaAdresowa)
 	cin.ignore();
 	getline(cin, kontakt.adres);
 
+	plik.open("Adresaci.txt", ios::in | ios::out | ios::app);
+
+	plik.seekg(0, ios::end);
+	int length = plik.tellg();
+	string bufor = "";
+
+	if (length == 0)
+	{
+		kontakt.id = 1;
+		plik.seekg(0, ios::end);
+	}
+	else
+	{
+		while (bufor != "\n" && (int)plik.tellg() != ios::beg)
+		{
+			plik.seekg(-2, ios::cur);
+			bufor = plik.get();
+		}
+
+		kontakt.id = (int)plik.get() - 47;
+		plik.seekg(0, ios::end);
+		plik << endl;
+	}
+
+	plik << kontakt.id << "|"
+		<< wybranyUzytkownik->idUzytkownika << "|"
+		<< kontakt.imie << "|" << kontakt.nazwisko << "|"
+		<< kontakt.telefon << "|" + kontakt.email << "|"
+		<< kontakt.adres << "|";
+
+	plik.close();
+
 	ksiazkaAdresowa.push_back(kontakt);
 
-	zapiszDoPliku(ksiazkaAdresowa);
+	system("cls");
+	cout << "Zapisano zmiany" << endl;
 
+	Sleep(1500);
+	cin.sync();
 }
-void edytujKontakt(vector<Kontakt>& ksiazkaAdresowa)
+
+void edytujKontakt(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkownik)
 {
 	system("cls");
 
 	int id;
 	bool kontaktIstnieje = false;
-	char wybor;
 	Kontakt* wybranyKontakt = NULL;
+	string daneZmienione;
 	string dane;
 
 	cin.sync();
@@ -180,35 +336,50 @@ void edytujKontakt(vector<Kontakt>& ksiazkaAdresowa)
 		cout << "5. Adres" << endl;
 		cout << "6. Powrot" << endl;
 
+		char wybor;
 		cin >> wybor;
-		cout << "Podaj dane: ";
 
-		cin.ignore();
-		getline(cin,dane);
+		if (wybor == '6')
+			return;
+
+		cout << "Podaj dane: ";
 
 		switch (wybor)
 		{
 			case '1':
+				cin.ignore();
+				getline(cin, dane);
 				wybranyKontakt->imie = dane;
-				zapiszDoPliku(ksiazkaAdresowa);
+				daneZmienione = zamienDaneNaString(*wybranyKontakt, wybranyUzytkownik);
+				zapiszDoPliku(daneZmienione, wybranyUzytkownik);
 				return;
 			case '2':
+				cin.ignore();
+				getline(cin, dane);
 				wybranyKontakt->nazwisko = dane;
-				zapiszDoPliku(ksiazkaAdresowa);
+				daneZmienione = zamienDaneNaString(*wybranyKontakt, wybranyUzytkownik);
+				zapiszDoPliku(daneZmienione, wybranyUzytkownik);
 				return;
 			case '3':
+				cin.ignore();
+				getline(cin, dane);
 				wybranyKontakt->telefon = dane;
-				zapiszDoPliku(ksiazkaAdresowa);
+				daneZmienione = zamienDaneNaString(*wybranyKontakt, wybranyUzytkownik);
+				zapiszDoPliku(daneZmienione, wybranyUzytkownik);
 				return;
 			case '4':
+				cin.ignore();
+				getline(cin, dane);
 				wybranyKontakt->email = dane;
-				zapiszDoPliku(ksiazkaAdresowa);
+				daneZmienione = zamienDaneNaString(*wybranyKontakt, wybranyUzytkownik);
+				zapiszDoPliku(daneZmienione, wybranyUzytkownik);
 				return;
 			case '5':
+				cin.ignore();
+				getline(cin, dane);
 				wybranyKontakt->adres = dane;
-				zapiszDoPliku(ksiazkaAdresowa);
-				return;
-			case '6':
+				daneZmienione = zamienDaneNaString(*wybranyKontakt, wybranyUzytkownik);
+				zapiszDoPliku(daneZmienione, wybranyUzytkownik);
 				return;
 			default:
 				system("cls");
@@ -219,7 +390,8 @@ void edytujKontakt(vector<Kontakt>& ksiazkaAdresowa)
 		}
 	}
 }
-void usunKontakt(vector<Kontakt>& ksiazkaAdresowa)
+
+void usunKontakt(vector<Kontakt>& ksiazkaAdresowa, Uzytkownik* wybranyUzytkownik)
 {
 	system("cls");
 
@@ -242,14 +414,18 @@ void usunKontakt(vector<Kontakt>& ksiazkaAdresowa)
 
 	if (!(kontaktIstnieje))
 	{
+		system("cls");
 		cout << endl << "Brak kontaktu o podanym ID" << endl;
+		Sleep(1500);
 		return;
 	}
 
-	ksiazkaAdresowa.erase(ksiazkaAdresowa.begin() + pozycja);
+	string daneZmienione = "!" + zamienDaneNaString(ksiazkaAdresowa[pozycja], wybranyUzytkownik);
+	zapiszDoPliku(daneZmienione, wybranyUzytkownik);
 
-	zapiszDoPliku(ksiazkaAdresowa);
+	ksiazkaAdresowa.erase(ksiazkaAdresowa.begin() + pozycja);
 }
+
 void wyszukajPoImieniu(const vector<Kontakt>& ksiazkaAdresowa)
 {
 	system("cls");
@@ -275,6 +451,7 @@ void wyszukajPoImieniu(const vector<Kontakt>& ksiazkaAdresowa)
 	cin.ignore();
 	cin.get();
 }
+
 void wyszukajPoNazwisku(const vector<Kontakt>& ksiazkaAdresowa)
 {
 	system("cls");
@@ -300,6 +477,49 @@ void wyszukajPoNazwisku(const vector<Kontakt>& ksiazkaAdresowa)
 	cin.ignore();
 	cin.get();
 }
+
+void zmianaHasla(vector<Uzytkownik>& uzytkownicy, Uzytkownik* wybranyUzytkownik)
+{
+	string noweHaslo;
+
+	system("cls");
+	cin.sync();
+
+	cout << "Podaj nowe haslo: ";
+	cin >> noweHaslo;
+	wybranyUzytkownik->haslo = noweHaslo;
+
+	fstream plik;
+	plik.open("Uzytkownicy.txt", ios::out);
+
+	if (plik.good() == false)
+	{
+		system("cls");
+		cout << "Nie ma mozliwosci zapisu do pliku" << endl;
+
+		Sleep(1500);
+		cin.sync();
+
+		return;
+	}
+
+	for (size_t i = 0; i < uzytkownicy.size(); i++)
+	{
+		plik << uzytkownicy[i].idUzytkownika << "|" << uzytkownicy[i].nazwa << "|" << uzytkownicy[i].haslo;
+
+		if (!(i == uzytkownicy.size() - 1))
+			plik << endl;
+	}
+
+	plik.close();
+
+	system("cls");
+	cout << "Zmieniono" << endl;
+
+	Sleep(1500);
+	cin.sync();
+}
+
 void wyswietlWszystkieKontakty(const vector<Kontakt>& ksiazkaAdresowa)
 {
 	system("cls");
@@ -318,38 +538,41 @@ void wyswietlWszystkieKontakty(const vector<Kontakt>& ksiazkaAdresowa)
 	cin.get();
 }
 
-int main()
+void otworzKsiazkeDlaUzytkownika(vector<Uzytkownik>& uzytkownicy, Uzytkownik* wybranyUzytkownik)
 {
 	char wybor;
 	vector<Kontakt> ksiazkaAdresowa;
 
-	wczytajDaneZPliku(ksiazkaAdresowa);
+	wczytajDaneZPliku(ksiazkaAdresowa, wybranyUzytkownik);
 
 	while (true)
 	{
 		system("cls");
 		cin.sync();
 
-		cout << "1. Dodaj kontakt" << endl;
-		cout << "2. Edytuj kontakt" << endl;
-		cout << "3. Usun kontakt" << endl;
-		cout << "4. Wyswietl wszystkie kontakty" << endl;
+		cout << "ZALOGOWANY UZYTKOWNIK: " << wybranyUzytkownik->nazwa << endl << endl;
+
+		cout << "1. Dodaj adresata" << endl;
+		cout << "2. Edytuj adresata" << endl;
+		cout << "3. Usun adresata" << endl;
+		cout << "4. Wyswietl wszystkich adresatow" << endl;
 		cout << "5. Wyszukaj po imieniu" << endl;
 		cout << "6. Wyszukaj po nazwisku" << endl;
-		cout << "7. Zakoncz" << endl;
+		cout << "7. Zmien haslo" << endl;
+		cout << "8. Wyloguj" << endl;
 
 		cin >> wybor;
 
 		switch (wybor)
 		{
 			case '1':
-				dodajKontakt(ksiazkaAdresowa);
+				dodajKontakt(ksiazkaAdresowa, wybranyUzytkownik);
 				break;
 			case '2':
-				edytujKontakt(ksiazkaAdresowa);
+				edytujKontakt(ksiazkaAdresowa, wybranyUzytkownik);
 				break;
 			case '3':
-				usunKontakt(ksiazkaAdresowa);
+				usunKontakt(ksiazkaAdresowa, wybranyUzytkownik);
 				break;
 			case '4':
 				wyswietlWszystkieKontakty(ksiazkaAdresowa);
@@ -361,6 +584,152 @@ int main()
 				wyszukajPoNazwisku(ksiazkaAdresowa);
 				break;
 			case '7':
+				zmianaHasla(uzytkownicy, wybranyUzytkownik);
+				break;
+			case '8':
+				return;
+			default:
+				system("cls");
+				cout << "Prosze podac poprawny numer" << endl;
+				Sleep(1500);
+		}
+	}
+}
+
+void rejestracja(vector<Uzytkownik>& uzytkownicy)
+{
+	Uzytkownik uzytkownik;
+	if (uzytkownicy.size() == 0)
+		uzytkownik.idUzytkownika = 1;
+	else
+		uzytkownik.idUzytkownika = uzytkownicy.back().idUzytkownika + 1;
+
+	system("cls");
+	cin.sync();
+
+	cout << "Podaj nazwe uzytkownika: ";
+	cin >> uzytkownik.nazwa;
+	cout << "Podaj haslo uzytkownika: ";
+	cin >> uzytkownik.haslo;
+
+	fstream plik;
+	plik.open("Uzytkownicy.txt", ios::out | ios::app);
+
+	if (plik.good() == false)
+	{
+		system("cls");
+		cout << "Nie ma mozliwosci zapisu do pliku" << endl;
+
+		Sleep(1500);
+		cin.sync();
+
+		return;
+	}
+
+	uzytkownicy.push_back(uzytkownik);
+
+	plik.seekg(0, ios::end);
+	int length = plik.tellg();
+
+	if (!(length == 0))
+		plik << endl;
+
+	plik << uzytkownik.idUzytkownika << "|" << uzytkownik.nazwa << "|" << uzytkownik.haslo;
+
+	plik.close();
+
+	system("cls");
+	cout << "Zarejestrowano" << endl;
+
+	Sleep(1500);
+	cin.sync();
+}
+
+Uzytkownik* logowanie(vector<Uzytkownik>& uzytkownicy)
+{
+	string nazwaPodana;
+	string hasloPodane;
+	bool uzytkownikIstnieje = false;
+	Uzytkownik* wybranyUzytkownik = nullptr;
+
+	while (true)
+	{
+		system("cls");
+		cin.sync();
+
+		cout << "Podaj nazwe uzytkownika: ";
+		cin >> nazwaPodana;
+
+		for (size_t i = 0; i < uzytkownicy.size(); i++)
+		{
+			if (uzytkownicy[i].nazwa == nazwaPodana)
+			{
+				uzytkownikIstnieje = true;
+				wybranyUzytkownik = &uzytkownicy[i];
+				break;
+			}
+		}
+		if (!(uzytkownikIstnieje))
+		{
+			system("cls");
+			cout << endl << "Nie ma takiego uzytkownika" << endl;
+			Sleep(1500);
+		}
+		else
+		{
+			cout << "Podaj haslo: ";
+			cin >> hasloPodane;
+
+			if (hasloPodane == wybranyUzytkownik->haslo)
+			{
+				system("cls");
+				cout << endl << "Zalogowano" << endl;
+				Sleep(1500);
+
+				return wybranyUzytkownik;
+			}
+			else
+			{
+				system("cls");
+				cout << endl << "Bledne haslo" << endl;
+				Sleep(1500);
+				return nullptr;
+			}
+		}
+	}
+}
+
+
+int main()
+{
+	char wybor;
+	Uzytkownik* wybranyUzytkownik;
+	vector<Uzytkownik> uzytkownicy;
+
+	wczytajUzytkownikow(uzytkownicy);
+
+	while (true)
+	{
+		system("cls");
+		cin.sync();
+
+		cout << "1. Logowanie" << endl;
+		cout << "2. Rejestracja" << endl;
+		cout << "3. Zamknij program" << endl;
+
+		cin >> wybor;
+
+		switch (wybor)
+		{
+			case '1':
+				if ((wybranyUzytkownik = logowanie(uzytkownicy)) == nullptr)
+					break;
+				otworzKsiazkeDlaUzytkownika(uzytkownicy, wybranyUzytkownik);
+				break;
+			case '2':
+				rejestracja(uzytkownicy);
+				break;
+			case '3':
 				exit(0);
 			default:
 				system("cls");
