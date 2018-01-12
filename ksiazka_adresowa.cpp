@@ -65,9 +65,7 @@ void zapiszDoPliku(string& daneZmienione, Uzytkownik* wybranyUzytkownik)
 
 		string idObecne = dane.substr(0, dane.find("|"));
 
-		if (poczatek == true)
-			poczatek = false;
-		else
+		if (poczatek == false)
 		{
 			if (!(daneZmienione == "" && (idObecne == idZmienione)))
 				temp << endl;
@@ -75,12 +73,18 @@ void zapiszDoPliku(string& daneZmienione, Uzytkownik* wybranyUzytkownik)
 
 		if (idObecne == idZmienione)
 		{
-			temp << daneZmienione;
+			if (!(daneZmienione == "" && (poczatek == true)))
+			{
+				temp << daneZmienione;
+				poczatek = false;
+			}
 		}
 		else
 		{
 			temp << dane;
+			poczatek = false;
 		}
+
 	}
 
 	plik.close();
